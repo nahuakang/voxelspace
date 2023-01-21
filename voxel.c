@@ -21,22 +21,27 @@ typedef struct {
   float zfar;   // distance of the camera looking forward
 } camera_t;
 
+// Angle: 270 degrees looking up is 1.5 * 3.1415926
 camera_t camera = {
-    .x = 512, .y = 512, .height = 150.0, .angle = 0.0, .zfar = 400};
+    .x = 512, .y = 512, .height = 150.0, .angle = 1.5 * 3.1415926, .zfar = 600};
 
 // processinput processes keyboard input
 void processinput() {
   if (keystate(KEY_UP)) {
-    camera.y--;
+    camera.x += cos(camera.angle);
+    camera.y += sin(camera.angle);
   }
   if (keystate(KEY_DOWN)) {
-    camera.y++;
+    camera.x -= cos(camera.angle);
+    camera.y -= sin(camera.angle);
   }
   if (keystate(KEY_LEFT)) {
-    camera.x--;
+    // Decrease by radians
+    camera.angle -= 0.01;
   }
   if (keystate(KEY_RIGHT)) {
-    camera.x++;
+    // Increase by radians
+    camera.angle += 0.01;
   }
   if (keystate(KEY_E)) {
     camera.height++;
@@ -78,10 +83,16 @@ int main(int argc, char *args[]) {
     processinput();
 
     // Get the x, y coordinates of the left-most and right-most points on FOV
-    float pl_x = -camera.zfar;
-    float pl_y = +camera.zfar;
-    float pr_x = +camera.zfar;
-    float pr_y = +camera.zfar;
+    float sinangle = sin(camera.angle);
+    float cosangle = cos(camera.angle);
+    // float pl_x = -camera.zfar;
+    // float pl_y = +camera.zfar;
+    // float pr_x = +camera.zfar;
+    // float pr_y = +camera.zfar;
+    float pl_x = cosangle * camera.zfar + sinangle * camera.zfar;
+    float pl_y = sinangle * camera.zfar - cosangle * camera.zfar;
+    float pr_x = cosangle * camera.zfar - sinangle * camera.zfar;
+    float pr_y = sinangle * camera.zfar + cosangle * camera.zfar;
 
     for (int i = 0; i < SCREEN_WIDTH; i++) {
       // dx: delta x
