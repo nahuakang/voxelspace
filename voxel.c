@@ -14,16 +14,21 @@ uint8_t *heightmap = NULL;
 uint8_t *colormap = NULL;
 
 typedef struct {
-  float x;      // x position on the map
-  float y;      // y position on the map
-  float height; // height of the camera
-  float angle;  // camera angle (radians, increases clockwise)
-  float zfar;   // distance of the camera looking forward
+  float x;       // x position on the map
+  float y;       // y position on the map
+  float height;  // height of the camera
+  float angle;   // camera angle (radians, increases clockwise)
+  float horizon; // offset of the horizon position (looking up and down)
+  float zfar;    // distance of the camera looking forward
 } camera_t;
 
 // Angle: 270 degrees looking up is 1.5 * 3.1415926
-camera_t camera = {
-    .x = 512, .y = 512, .height = 150.0, .angle = 1.5 * 3.1415926, .zfar = 600};
+camera_t camera = {.x = 512,
+                   .y = 512,
+                   .height = 150.0,
+                   .angle = 1.5 * 3.1415926, // Same as 270 degrees
+                   .horizon = 100.0,
+                   .zfar = 600};
 
 // processinput processes keyboard input
 void processinput() {
@@ -48,6 +53,12 @@ void processinput() {
   }
   if (keystate(KEY_D)) {
     camera.height--;
+  }
+  if (keystate(KEY_Q)) {
+    camera.horizon += 1.5;
+  }
+  if (keystate(KEY_W)) {
+    camera.horizon -= 1.5;
   }
 }
 
@@ -121,26 +132,28 @@ int main(int argc, char *args[]) {
         // y-projec = y / zfar;
         // The farther away from the viewer, the more we scale with zfar
         // And then use a "magic" scaling factor for the heightonscreen
-        int heightonscreen =
-            (int)((camera.height - heightmap[mapoffset]) / z * SCALE_FACTOR);
+        // And finally shift with the camera's horizon
+        int projectedheight =
+            (int)((camera.height - heightmap[mapoffset]) / z * SCALE_FACTOR +
+                  camera.horizon);
 
-        if (heightonscreen < 0) {
-          heightonscreen = 0;
+        if (projectedheight < 0) {
+          projectedheight = 0;
         }
 
-        if (heightonscreen > SCREEN_HEIGHT) {
-          heightonscreen = SCREEN_HEIGHT - 1;
+        if (projectedheight > SCREEN_HEIGHT) {
+          projectedheight = SCREEN_HEIGHT - 1;
         }
 
         // Render terrain pixels if the projected height on the screen is higher
         // than the max_height
-        if (heightonscreen < maxheight) {
+        if (projectedheight < maxheight) {
           // Draw pixels from the previous max_height until the new projected
           // height
-          for (int y = heightonscreen; y < maxheight; y++) {
+          for (int y = projectedheight; y < maxheight; y++) {
             framebuffer[(SCREEN_WIDTH * y) + i] = (uint8_t)colormap[mapoffset];
           }
-          maxheight = heightonscreen;
+          maxheight = projectedheight;
         }
       }
     }
